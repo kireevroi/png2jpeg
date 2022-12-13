@@ -34,13 +34,7 @@ import (
 	return arr
  }
 
- func convertPng2Jpeg(path string, arr []string) {
-	if _, err := os.Stat("jpeg"); errors.Is(err, os.ErrNotExist) {
-		if err := os.Mkdir("jpeg", os.ModePerm); err != nil {
-			log.Fatal(err)
-		}
-	}
-	for _, name := range arr {
+func convertSinglePng2Jpeg(path string, name string) {
 		pngImgFile, err := os.Open(path + name)
     if err != nil {
       log.Println(err)
@@ -78,6 +72,16 @@ import (
       os.Exit(1)
     }
     fmt.Println("Converted PNG file to JPEG file")
+}
+
+ func convertPng2Jpeg(path string, arr []string) {
+	if _, err := os.Stat("jpeg"); errors.Is(err, os.ErrNotExist) {
+		if err := os.Mkdir("jpeg", os.ModePerm); err != nil {
+			log.Fatal(err)
+		}
+	}
+	for _, name := range arr {
+    convertSinglePng2Jpeg(path, name)
 	}
 
 
