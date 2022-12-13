@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -12,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"errors"
+	"github.com/nfnt/resize"
 )
 
  func getNames(path string) []string{
@@ -55,23 +55,54 @@ func convertSinglePng2Jpeg(path string, name string) {
       log.Println(err)
       os.Exit(1)
     }
-
     defer jpgImgFile.Close()
-
     var opt jpeg.Options
     opt.Quality = 80
-
-         // convert newImage to JPEG encoded byte and save to jpgImgFile
-         // with quality = 80
     err = jpeg.Encode(jpgImgFile, newImg, &opt)
-
-         //err = jpeg.Encode(jpgImgFile, newImg, nil) -- use nil if ignore quality options
-
     if err != nil {
       log.Println(err)
       os.Exit(1)
     }
-    fmt.Println("Converted PNG file to JPEG file")
+    log.Println("Converted PNG file to JPEG file")
+}
+
+func SqueezeBatchJpeg(path string, arr []string) {
+	if _, err := os.Stat("squeeze"); errors.Is(err, os.ErrNotExist) {
+		if err := os.Mkdir("squeeze", os.ModePerm); err != nil {
+			log.Fatal(err)
+		}
+	}
+	for _, name := range arr {
+    SqueezeSingleJpeg(path, name)
+	}
+}
+
+func SqueezeSingleJpeg(path string, name string) {
+	// open "test.jpg"
+	file, err := os.Open(path + name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// decode jpeg into image.Image
+	img, err := jpeg.Decode(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	file.Close()
+
+	// resize to width 1000 using Lanczos resampling
+	// and preserve aspect ratio
+	m := resize.Resize(256, 0, img, resize.Lanczos3)
+
+	out, err := os.Create("squeeze/" + name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer out.Close()
+
+	// write new image to file
+	jpeg.Encode(out, m, nil)
+	log.Println("Squeezed JPEG")
 }
 
  func convertPng2Jpeg(path string, arr []string) {
@@ -83,15 +114,9 @@ func convertSinglePng2Jpeg(path string, name string) {
 	for _, name := range arr {
     convertSinglePng2Jpeg(path, name)
 	}
-
-
-
-         // create image from PNG file
-
-
-         // create a new Image with the same dimension of PNG image
  }
 
  func main() {
 	convertPng2Jpeg("pokemon/", getNames("pokemon/"))
+	SqueezeBatchJpeg("jpeg/", getNames("jpeg/"))
  }
